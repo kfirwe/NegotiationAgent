@@ -5,9 +5,9 @@ OVERALL PERFORMANCE:
 - Tests conducted: 6
 - Agreements reached: 6
 - Agreement rate: 100.0%
-- Average Group4 utility: 0.839
-- Average ANL utility: 0.643
-- Average Pareto efficiency: 0.741
+- Average Group4 utility: 0.791
+- Average ANL utility: 0.698
+- Average Pareto efficiency: 0.745
 
 BEST MATCHUP: Linear
 WORST MATCHUP: Hardliner
@@ -16,42 +16,42 @@ DETAILED RESULTS BY AGENT TYPE:
 
 Boulware Agent:
 - Agreements: 1
-- Group4 utility: 0.695
-- ANL utility: 0.870
-- Pareto efficiency: 0.783
-- Rounds played: 150
+- Group4 utility: 0.535
+- ANL utility: 0.940
+- Pareto efficiency: 0.738
+- Rounds played: 15
 
 Conceder Agent:
+- Agreements: 1
+- Group4 utility: 0.920
+- ANL utility: 0.510
+- Pareto efficiency: 0.715
+- Rounds played: 15
+
+Linear Agent:
 - Agreements: 1
 - Group4 utility: 0.950
 - ANL utility: 0.550
 - Pareto efficiency: 0.750
-- Rounds played: 150
-
-Linear Agent:
-- Agreements: 1
-- Group4 utility: 1.000
-- ANL utility: 0.470
-- Pareto efficiency: 0.735
-- Rounds played: 150
+- Rounds played: 15
 
 Random Agent:
 - Agreements: 1
-- Group4 utility: 0.900
-- ANL utility: 0.490
-- Pareto efficiency: 0.695
-- Rounds played: 150
+- Group4 utility: 0.950
+- ANL utility: 0.550
+- Pareto efficiency: 0.750
+- Rounds played: 15
 
 Tit4Tat Agent:
 - Agreements: 1
-- Group4 utility: 0.925
-- ANL utility: 0.590
-- Pareto efficiency: 0.758
-- Rounds played: 150
+- Group4 utility: 0.875
+- ANL utility: 0.670
+- Pareto efficiency: 0.772
+- Rounds played: 15
 
 Hardliner Agent:
 - Agreements: 1
-- Group4 utility: 0.565
-- ANL utility: 0.890
-- Pareto efficiency: 0.728
-- Rounds played: 150
+- Group4 utility: 0.515
+- ANL utility: 0.970
+- Pareto efficiency: 0.743
+- Rounds played: 15

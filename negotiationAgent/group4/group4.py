@@ -92,7 +92,7 @@ class Group4(SAONegotiator):
                 best_offer = self._select_best_offer(candidates, state)
                 self.my_offers.append(best_offer)
 
-                print(f"MY OFFER (Round {state.step}): {best_offer}, Target Utility: {target_utility:.3f}")
+                # print(f"MY OFFER (Round {state.step}): {best_offer}, Target Utility: {target_utility:.3f}")
 
                 return best_offer
             else:

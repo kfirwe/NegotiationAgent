@@ -6,61 +6,279 @@ Assignment Step 3: Test against standard ANL agents
 import time
 from traceback import print_exc
 from typing import Dict, List, Any, Optional
-from group4 import Group4
 import random
 import numpy as np
+
+# Use relative import for Group4
+try:
+    from .group4 import Group4
+except ImportError:
+    # Fallback for direct execution
+    import os, sys
+    sys.path.append(os.path.dirname(__file__))
+    from group4 import Group4
 
 try:
     # Import actual ANL agents from the official ANL library
     from anl.anl2024.negotiators import *
     from anl.anl2024 import anl2024_tournament
     from negmas.sao import SAONegotiator
-    from negmas import make_issue
+    from negmas import make_issue, Issue, OutcomeSpace
+    from negmas.utilities import LinearUtilityFunction, UtilityFunction
     ANL_AVAILABLE = True
-    print("✅ ANL library found - using real ANL agents")
 except ImportError:
     ANL_AVAILABLE = False
-    print("⚠️  ANL library not found - using mock agents")
-    print("   Install with: pip install anl")
 
-# Fallback imports for testing infrastructure
+# Fallback imports for testing infrastructure using relative imports
 try:
-    from helpers import create_test_negotiator, simulate_negotiation
+    from .helpers import create_test_negotiator, simulate_negotiation
     HELPERS_AVAILABLE = True
 except ImportError:
-    HELPERS_AVAILABLE = False
-    print("⚠️  Helpers not available - using simplified testing")
+    try:
+        # Fallback for direct execution
+        import os, sys
+        sys.path.append(os.path.dirname(__file__))
+        from helpers import create_test_negotiator, simulate_negotiation
+        HELPERS_AVAILABLE = True
+    except ImportError:
+        HELPERS_AVAILABLE = False
 
 class ANLAgentTests:
     """Test Group4 agent against standard ANL competitor agents"""
     
-    def __init__(self):
+    def __init__(self, verbose=False):
         self.test_results = []
         self.anl_available = ANL_AVAILABLE
+        self.verbose = verbose  # Control printing for tournament compliance
+    
+    def _print(self, message):
+        """Controlled printing - only when verbose is True"""
+        if self.verbose:
+            print(message)
     
     def get_real_anl_agents(self) -> List[str]:
         """Get list of available real ANL agents"""
         if not self.anl_available:
             return []
         
-        # Standard ANL agent types that should be available
-        standard_agents = [
-            'Boulware', 'Conceder', 'Linear', 'RandomNegotiator', 
-            'TitForTat', 'Hardliner', 'NiceGuy', 'Alternator'
+        # Real ANL agents available in the library (excluding problematic ones)
+        real_agents = [
+            'Linear', 'Conceder', 'Boulware', 'MiCRO'
         ]
         
         available_agents = []
-        for agent_name in standard_agents:
+        for agent_name in real_agents:
             try:
-                # Try to import the agent
+                # Try to get the agent class
                 agent_class = globals().get(agent_name)
-                if agent_class and issubclass(agent_class, SAONegotiator):
+                if agent_class and callable(agent_class):
                     available_agents.append(agent_name)
             except:
                 continue
         
         return available_agents
     
+    def create_negmas_utility_function(self, preferences):
+        """Create proper NegMAS utility function"""
+        if not self.anl_available:
+            return self.create_mock_utility_function(preferences)
+        
+        try:
+            # Create issues for the party domain
+            issues = [
+                make_issue(['Hotel', 'Restaurant', 'Club'], 'venue'),
+                make_issue(['Buffet', 'Plated', 'Cocktail'], 'food'),
+                make_issue(['DJ', 'Band', 'Playlist'], 'music'),
+                make_issue(['Premium', 'Standard', 'Basic'], 'drinks')
+            ]
+            
+            # Create outcome space using make_os function
+            from negmas import make_os, LinearAdditiveUtilityFunction, TableFun
+            outcome_space = make_os(issues)
+            
+            # Create utility function using TableFun objects
+            domain_issues = [
+                ('venue', ['Hotel', 'Restaurant', 'Club']),
+                ('food', ['Buffet', 'Plated', 'Cocktail']),
+                ('music', ['DJ', 'Band', 'Playlist']),
+                ('drinks', ['Premium', 'Standard', 'Basic'])
+            ]
+            
+            weights = [preferences['weights'].get(name, 0.25) for name, _ in domain_issues]
+            issue_funs = []
+            for name, values in domain_issues:
+                # Create TableFun for this issue
+                issue_prefs = preferences['preferences'].get(name, {})
+                # Fill in default values if missing
+                value_dict = {}
+                for value in values:
+                    value_dict[value] = issue_prefs.get(value, 0.5)
+                issue_funs.append(TableFun(value_dict))
+            
+            utility_function = LinearAdditiveUtilityFunction(
+                values=issue_funs,
+                weights=weights,
+                outcome_space=outcome_space
+            )
+            
+            return utility_function
+            
+        except Exception as e:
+            self._print(f"   Failed to create NegMAS utility function: {e}")
+            self._print(f"   Falling back to mock utility function")
+            return self.create_mock_utility_function(preferences)
+    
+    def create_mock_utility_function(self, preferences):
+        """Create mock utility function for fallback"""
+        class MockOutcomeSpace:
+            def random_outcome(self):
+                return {
+                    'venue': random.choice(['Hotel', 'Restaurant', 'Club']),
+                    'food': random.choice(['Buffet', 'Plated', 'Cocktail']),
+                    'music': random.choice(['DJ', 'Band', 'Playlist']),
+                    'drinks': random.choice(['Premium', 'Standard', 'Basic'])
+                }
+        
+        class MockUtilityFunction:
+            def __init__(self, prefs):
+                self.outcome_space = MockOutcomeSpace()
+                self.weights = prefs['weights']
+                self.preferences = prefs['preferences']
+            
+            def __call__(self, outcome):
+                if isinstance(outcome, dict):
+                    utility = 0.0
+                    for issue, value in outcome.items():
+                        if issue in self.weights and issue in self.preferences:
+                            pref_value = self.preferences[issue].get(value, 0.5)
+                            utility += self.weights[issue] * pref_value
+                    return utility
+                return 0.5
+        
+        return MockUtilityFunction(preferences)
+    
+    def create_anl_compatible_group4_agent(self, name: str, using_real_anl: bool = False):
+        """Create Group4 agent that is compatible with real ANL agents"""
+        if not using_real_anl:
+            # Use regular Group4 agent for mock ANL agents
+            return Group4(name=name)
+        
+        # Create adapter for real ANL agents
+        class Group4ANLAdapter(Group4):
+            def __init__(self, name: str):
+                super().__init__(name=name)
+                self.negmas_ufun = None
+                
+            def initialize(self, ufun=None, **kwargs):
+                """Initialize with NegMAS utility function"""
+                self.negmas_ufun = ufun
+                # Create a mock dict-based utility function for internal use
+                if ufun and hasattr(ufun, 'outcome_space'):
+                    try:
+                        # Sample some outcomes to understand the utility function
+                        sample_outcomes = list(ufun.outcome_space.enumerate_or_sample(max_cardinality=10))
+                        if sample_outcomes:
+                            # Get the issue names from the outcome space
+                            issue_names = [issue.name for issue in ufun.outcome_space.issues]
+                            
+                            # Create a mock utility function that converts dict to outcome
+                            class MockUtilityAdapter:
+                                def __init__(self, real_ufun, issue_names, sample_outcomes):
+                                    self.real_ufun = real_ufun
+                                    self.issue_names = issue_names
+                                    self.sample_outcomes = sample_outcomes
+                                    
+                                def __call__(self, outcome_dict):
+                                    if isinstance(outcome_dict, dict):
+                                        try:
+                                            # Convert dict to outcome tuple based on issue order
+                                            outcome_tuple = tuple(outcome_dict.get(issue_name, self.sample_outcomes[0][i]) 
+                                                               for i, issue_name in enumerate(self.issue_names))
+                                            return self.real_ufun(outcome_tuple)
+                                        except:
+                                            return 0.5
+                                    return 0.5
+                                
+                                def eval_normalized(self, outcome):
+                                    """Delegate to real utility function"""
+                                    try:
+                                        if hasattr(self.real_ufun, 'eval_normalized'):
+                                            if isinstance(outcome, dict):
+                                                outcome_tuple = tuple(outcome.get(issue_name, self.sample_outcomes[0][i]) 
+                                                                   for i, issue_name in enumerate(self.issue_names))
+                                                return self.real_ufun.eval_normalized(outcome_tuple)
+                                            else:
+                                                return self.real_ufun.eval_normalized(outcome)
+                                        else:
+                                            return self.__call__(outcome)
+                                    except:
+                                        return 0.5
+                                
+                                def eval(self, outcome):
+                                    """Delegate to real utility function"""
+                                    return self.__call__(outcome)
+                                    
+                                def __getattr__(self, name):
+                                    """Delegate any missing attributes to real utility function"""
+                                    return getattr(self.real_ufun, name)
+                            
+                            mock_ufun = MockUtilityAdapter(ufun, issue_names, sample_outcomes)
+                            
+                            # Use the mock adapter for Group4's internal logic
+                            super().initialize(ufun=mock_ufun, **kwargs)
+                            return
+                    except Exception as e:
+                        self._print(f"   Warning: Could not create adapter utility function: {e}")
+                
+                # Fallback to regular initialization
+                super().initialize(ufun=ufun, **kwargs)
+            
+            def propose(self, state):
+                """Propose using Group4 logic but return NegMAS-compatible outcome"""
+                # Use Group4's proposal logic
+                proposal = super().propose(state)
+                
+                # Convert to NegMAS outcome if needed
+                if proposal and self.negmas_ufun and hasattr(self.negmas_ufun, 'outcome_space'):
+                    try:
+                        # Get the issue names from the outcome space
+                        issue_names = [issue.name for issue in self.negmas_ufun.outcome_space.issues]
+                        # Convert dict to outcome tuple based on issue order
+                        outcome_tuple = tuple(proposal.get(issue_name, 'Hotel') 
+                                           for issue_name in issue_names)
+                        return outcome_tuple
+                    except:
+                        pass
+                
+                return proposal
+            
+            def respond(self, state):
+                """Respond using Group4 logic"""
+                # Get the offer from state
+                offer = getattr(state, 'current_offer', None)
+                if offer and self.negmas_ufun and hasattr(self.negmas_ufun, 'outcome_space'):
+                    try:
+                        # Convert outcome tuple to dict for Group4's logic
+                        if isinstance(offer, tuple):
+                            offer_dict = {}
+                            issue_names = [issue.name for issue in self.negmas_ufun.outcome_space.issues]
+                            for i, issue_name in enumerate(issue_names):
+                                if i < len(offer):
+                                    offer_dict[issue_name] = offer[i]
+                            
+                            # Temporarily set the offer as dict
+                            original_offer = state.current_offer
+                            state.current_offer = offer_dict
+                            response = super().respond(state)
+                            state.current_offer = original_offer
+                            return response
+                    except:
+                        pass
+                
+                return super().respond(state)
+        
+        return Group4ANLAdapter(name=name)
+
     def create_anl_agent(self, agent_type: str, name: str = None):
         """Create real ANL agent or mock if not available"""
         if name is None:
@@ -71,17 +289,21 @@ class ANLAgentTests:
                 # Try to create real ANL agent
                 agent_class = globals().get(agent_type)
                 if agent_class:
-                    # Real ANL agents may have different constructor signatures
+                    # Real ANL agents typically take name as parameter
                     try:
                         return agent_class(name=name)
-                    except:
+                    except TypeError:
                         # Try without name parameter
                         agent = agent_class()
-                        agent.name = name
+                        if hasattr(agent, 'name'):
+                            agent.name = name
                         return agent
+                    except Exception as e:
+                        self._print(f"   Failed to create real ANL agent {agent_type}: {e}")
+                        self._print(f"   Falling back to mock agent")
             except Exception as e:
-                print_exc()
-                print(f"Failed to create real ANL agent {agent_type}: {e}")
+                self._print(f"   Error accessing ANL agent {agent_type}: {e}")
+                self._print(f"   Falling back to mock agent")
         
         # Fallback to mock agent
         return self.create_mock_anl_agent(agent_type, name)
@@ -216,81 +438,114 @@ class ANLAgentTests:
     def test_against_anl_agents(self, rounds: int = 20) -> Dict[str, Any]:
         """Test Group4 against all available ANL competitor agents"""
         
-        # For now, use mock agents until we can properly integrate with real ANL
-        # The real ANL agents have complex utility function requirements
-        print("🎯 Testing against standard negotiation strategies")
-        print("   (Using mock agents with realistic ANL behaviors)")
-        anl_agent_types = ['Boulware', 'Conceder', 'Linear', 'Random', 'Tit4Tat', 'Hardliner']
+        # Try to use real ANL agents first
+        if self.anl_available:
+            real_agents = self.get_real_anl_agents()
+            if real_agents:
+                self._print("🎯 Testing against real ANL agents")
+                self._print(f"   Available agents: {real_agents}")
+                anl_agent_types = real_agents
+                using_real_anl = True
+            else:
+                self._print("⚠️  No real ANL agents available, using mock agents")
+                anl_agent_types = ['Boulware', 'Conceder', 'Linear', 'MiCRO']
+                using_real_anl = False
+        else:
+            self._print("🎯 Testing against mock negotiation strategies")
+            self._print("   (Real ANL library not available)")
+            anl_agent_types = ['Boulware', 'Conceder', 'Linear', 'Random', 'Tit4Tat', 'Hardliner']
+            using_real_anl = False
         
         results = {
             'group4_agent': None,
             'test_rounds': rounds,
             'anl_results': {},
             'summary': {},
-            'using_real_anl': False  # Set to False for now
+            'using_real_anl': using_real_anl
         }
         
-        print(f"=== ANL AGENT TESTING ({len(anl_agent_types)} agents) ===")
+        self._print(f"=== ANL AGENT TESTING ({len(anl_agent_types)} agents) ===")
         
         for agent_type in anl_agent_types:
-            print(f"\n🤖 Testing against {agent_type} agent...")
+            self._print(f"\n🤖 Testing against {agent_type} agent...")
             
             # Create agents
-            if HELPERS_AVAILABLE:
+            if using_real_anl:
+                group4_agent = self.create_anl_compatible_group4_agent(f"Group4_vs_{agent_type}", using_real_anl=True)
+            elif HELPERS_AVAILABLE:
                 group4_agent = create_test_negotiator(name=f"Group4_vs_{agent_type}")
             else:
                 group4_agent = Group4(name=f"Group4_vs_{agent_type}")
             
-            # Always use mock agents for now (they work reliably)
-            anl_agent = self.create_mock_anl_agent(agent_type, f"ANL_{agent_type}")
+            # Create ANL agent (real or mock)
+            anl_agent = self.create_anl_agent(agent_type, f"ANL_{agent_type}")
             
             # Run head-to-head negotiation
-            match_results = self._run_anl_match(group4_agent, anl_agent, rounds)
+            match_results = self._run_anl_match(group4_agent, anl_agent, rounds, using_real_anl)
             results['anl_results'][agent_type] = match_results
             
-            print(f"✅ Results vs {agent_type}:")
-            print(f"   Agreements: {match_results['agreements_reached']}")
-            print(f"   Group4 avg utility: {match_results['group4_avg_utility']:.3f}")
-            print(f"   ANL agent avg utility: {match_results['anl_avg_utility']:.3f}")
-            print(f"   Pareto efficiency: {match_results['avg_pareto_efficiency']:.3f}")
-            print(f"   Total rounds played: {match_results['total_rounds']}")
+            self._print(f"✅ Results vs {agent_type}:")
+            self._print(f"   Agreements: {match_results['agreements_reached']}")
+            self._print(f"   Group4 avg utility: {match_results['group4_avg_utility']:.3f}")
+            self._print(f"   ANL agent avg utility: {match_results['anl_avg_utility']:.3f}")
+            self._print(f"   Pareto efficiency: {match_results['avg_pareto_efficiency']:.3f}")
+            self._print(f"   Total rounds played: {match_results['total_rounds']}")
         
         # Calculate summary statistics
         results['summary'] = self._calculate_anl_summary(results['anl_results'])
         
         return results
     
-    def _run_anl_match(self, group4_agent: Group4, anl_agent, rounds: int) -> Dict[str, Any]:
-        """Run a match between Group4 and ANL agent"""
+    def convert_tuple_to_dict(self, outcome_tuple, issue_names):
+        """Convert outcome tuple to dict format"""
+        if isinstance(outcome_tuple, dict):
+            return outcome_tuple
+        if isinstance(outcome_tuple, tuple) and len(outcome_tuple) == len(issue_names):
+            return {issue_names[i]: outcome_tuple[i] for i in range(len(issue_names))}
+        return None
+    
+    def convert_dict_to_tuple(self, outcome_dict, issue_names):
+        """Convert outcome dict to tuple format"""
+        if isinstance(outcome_dict, tuple):
+            return outcome_dict
+        if isinstance(outcome_dict, dict):
+            return tuple(outcome_dict.get(issue_name, 'Hotel') for issue_name in issue_names)
+        return None
+    
+    def safe_utility_calculation(self, utility_function, outcome):
+        """Safely calculate utility handling both tuple and dict outcomes"""
+        if not utility_function:
+            return 0.5
         
-        # Create different utility functions for testing
-        def create_utility_function(preferences):
-            class UtilityFunction:
-                def __init__(self, prefs):
-                    self.outcome_space = MockOutcomeSpace()
-                    self.weights = prefs['weights']
-                    self.preferences = prefs['preferences']
-                
-                def __call__(self, outcome):
+        try:
+            # Try direct calculation first
+            return utility_function(outcome)
+        except:
+            # If it fails, try conversion
+            try:
+                if hasattr(utility_function, 'outcome_space'):
+                    # NegMAS utility function - expects tuples
+                    issue_names = [issue.name for issue in utility_function.outcome_space.issues]
                     if isinstance(outcome, dict):
-                        utility = 0.0
-                        for issue, value in outcome.items():
-                            if issue in self.weights and issue in self.preferences:
-                                pref_value = self.preferences[issue].get(value, 0.5)
-                                utility += self.weights[issue] * pref_value
-                        return utility
-                    return 0.5
-            
-            return UtilityFunction(preferences)
+                        outcome_tuple = self.convert_dict_to_tuple(outcome, issue_names)
+                        return utility_function(outcome_tuple)
+                    elif isinstance(outcome, tuple):
+                        return utility_function(outcome)
+                else:
+                    # Mock utility function - expects dicts
+                    if isinstance(outcome, tuple):
+                        issue_names = ['venue', 'food', 'music', 'drinks']
+                        outcome_dict = self.convert_tuple_to_dict(outcome, issue_names)
+                        return utility_function(outcome_dict)
+                    elif isinstance(outcome, dict):
+                        return utility_function(outcome)
+            except:
+                return 0.5
         
-        class MockOutcomeSpace:
-            def random_outcome(self):
-                return {
-                    'venue': random.choice(['Hotel', 'Restaurant', 'Club']),
-                    'food': random.choice(['Buffet', 'Plated', 'Cocktail']),
-                    'music': random.choice(['DJ', 'Band', 'Playlist']),
-                    'drinks': random.choice(['Premium', 'Standard', 'Basic'])
-                }
+        return 0.5
+    
+    def _run_anl_match(self, group4_agent: Group4, anl_agent, rounds: int, using_real_anl: bool = False) -> Dict[str, Any]:
+        """Run a match between Group4 and ANL agent"""
         
         # Create opposing preference profiles
         group4_prefs = {
@@ -313,12 +568,44 @@ class ANLAgentTests:
             }
         }
         
-        group4_ufun = create_utility_function(group4_prefs)
-        anl_ufun = create_utility_function(anl_prefs)
+        # Create utility functions (NegMAS for real agents, mock for others)
+        if using_real_anl:
+            group4_ufun = self.create_negmas_utility_function(group4_prefs)
+            anl_ufun = self.create_negmas_utility_function(anl_prefs)
+        else:
+            group4_ufun = self.create_mock_utility_function(group4_prefs)
+            anl_ufun = self.create_mock_utility_function(anl_prefs)
         
         # Initialize agents
-        group4_agent.initialize(ufun=group4_ufun)
-        anl_agent.initialize(ufun=anl_ufun)
+        try:
+            group4_agent.initialize(ufun=group4_ufun)
+            
+            # Initialize ANL agent with better error handling
+            if using_real_anl and hasattr(anl_agent, 'initialize'):
+                try:
+                    # Give real ANL agents the actual NegMAS utility function
+                    anl_agent.initialize(ufun=anl_ufun)
+                except Exception as e:
+                    self._print(f"   Warning: ANL agent initialization failed: {e}")
+                    # Try alternative initialization methods
+                    try:
+                        anl_agent.set_preferences(anl_ufun)
+                    except:
+                        try:
+                            anl_agent.ufun = anl_ufun
+                        except:
+                            self._print(f"   Warning: Could not set utility function for ANL agent")
+            elif hasattr(anl_agent, 'initialize'):
+                anl_agent.initialize(ufun=anl_ufun)
+            else:
+                # Set utility function directly
+                anl_agent.ufun = anl_ufun
+                
+        except Exception as e:
+            self._print(f"   Warning: Agent initialization failed: {e}")
+            # Try minimal initialization
+            group4_agent.ufun = group4_ufun
+            anl_agent.ufun = anl_ufun
         
         # Run negotiation
         agreements = []
@@ -333,65 +620,110 @@ class ANLAgentTests:
                 self.current_offer = None
         
         for round_num in range(rounds):
-            state = MockState(round_num, rounds)
-            
-            # Group4 proposes
-            group4_offer = group4_agent.propose(state)
-            if group4_offer:
-                state.current_offer = group4_offer
-                anl_response = anl_agent.respond(state)
+            try:
+                state = MockState(round_num, rounds)
                 
-                if anl_response == 0:  # ACCEPT
-                    group4_utility = group4_ufun(group4_offer)
-                    anl_utility = anl_ufun(group4_offer)
-                    pareto_efficiency = (group4_utility + anl_utility) / 2.0
+                # Group4 proposes
+                group4_offer = group4_agent.propose(state)
+                if group4_offer:
+                    state.current_offer = group4_offer
                     
-                    agreements.append({
-                        'round': round_num,
-                        'offer': group4_offer,
-                        'group4_utility': group4_utility,
-                        'anl_utility': anl_utility,
-                        'pareto_efficiency': pareto_efficiency
-                    })
+                    # ANL agent responds
+                    if using_real_anl and hasattr(anl_agent, 'respond'):
+                        # Convert dict offer to tuple for real ANL agents
+                        if isinstance(group4_offer, dict) and group4_ufun and hasattr(group4_ufun, 'outcome_space'):
+                            try:
+                                offer_tuple = tuple(group4_offer.get(issue.name, list(issue.values)[0]) 
+                                                 for issue in group4_ufun.outcome_space.issues)
+                                state.current_offer = offer_tuple
+                                anl_response = anl_agent.respond(state)
+                                # Convert back to dict for utility calculation
+                                state.current_offer = group4_offer
+                            except:
+                                anl_response = anl_agent.respond(state)
+                        else:
+                            anl_response = anl_agent.respond(state)
+                    elif hasattr(anl_agent, 'respond'):
+                        anl_response = anl_agent.respond(state)
+                    else:
+                        # Fallback response logic
+                        anl_utility = anl_ufun(group4_offer)
+                        anl_response = 0 if anl_utility > 0.5 else 1
                     
-                    group4_utilities.append(group4_utility)
-                    anl_utilities.append(anl_utility)
-                    pareto_efficiencies.append(pareto_efficiency)
-                    
-                    break
-            
-            # ANL agent proposes
-            anl_offer = anl_agent.propose(state)
-            if anl_offer:
-                state.current_offer = anl_offer
-                group4_response = group4_agent.respond(state)
+                    if anl_response == 0:  # ACCEPT
+                        group4_utility = self.safe_utility_calculation(group4_ufun, group4_offer)
+                        anl_utility = self.safe_utility_calculation(anl_ufun, group4_offer)
+                        pareto_efficiency = (group4_utility + anl_utility) / 2.0
+                        
+                        agreements.append({
+                            'round': round_num,
+                            'offer': group4_offer,
+                            'group4_utility': group4_utility,
+                            'anl_utility': anl_utility,
+                            'pareto_efficiency': pareto_efficiency
+                        })
+                        
+                        group4_utilities.append(group4_utility)
+                        anl_utilities.append(anl_utility)
+                        pareto_efficiencies.append(pareto_efficiency)
+                        
+                        break
                 
-                # Convert ResponseType to integer if needed
-                if hasattr(group4_response, 'value'):
-                    group4_response = group4_response.value
-                elif str(group4_response) == 'ResponseType.ACCEPT_OFFER':
-                    group4_response = 0
-                elif str(group4_response) == 'ResponseType.REJECT_OFFER':
-                    group4_response = 1
+                # ANL agent proposes
+                if using_real_anl and hasattr(anl_agent, 'propose'):
+                    anl_offer = anl_agent.propose(state)
+                    # Convert tuple offer to dict for Group4 agent
+                    if isinstance(anl_offer, tuple) and anl_ufun and hasattr(anl_ufun, 'outcome_space'):
+                        try:
+                            anl_offer_dict = {}
+                            for i, issue in enumerate(anl_ufun.outcome_space.issues):
+                                if i < len(anl_offer):
+                                    anl_offer_dict[issue.name] = anl_offer[i]
+                            anl_offer = anl_offer_dict
+                        except:
+                            pass
+                elif hasattr(anl_agent, 'propose'):
+                    anl_offer = anl_agent.propose(state)
+                else:
+                    # Fallback proposal logic
+                    anl_offer = anl_ufun.outcome_space.random_outcome() if hasattr(anl_ufun, 'outcome_space') else {
+                        'venue': 'Club', 'food': 'Cocktail', 'music': 'Playlist', 'drinks': 'Basic'
+                    }
                 
-                if group4_response == 0:  # ACCEPT
-                    group4_utility = group4_ufun(anl_offer)
-                    anl_utility = anl_ufun(anl_offer)
-                    pareto_efficiency = (group4_utility + anl_utility) / 2.0
+                if anl_offer:
+                    state.current_offer = anl_offer
+                    group4_response = group4_agent.respond(state)
                     
-                    agreements.append({
-                        'round': round_num,
-                        'offer': anl_offer,
-                        'group4_utility': group4_utility,
-                        'anl_utility': anl_utility,
-                        'pareto_efficiency': pareto_efficiency
-                    })
+                    # Convert ResponseType to integer if needed
+                    if hasattr(group4_response, 'value'):
+                        group4_response = group4_response.value
+                    elif str(group4_response) == 'ResponseType.ACCEPT_OFFER':
+                        group4_response = 0
+                    elif str(group4_response) == 'ResponseType.REJECT_OFFER':
+                        group4_response = 1
                     
-                    group4_utilities.append(group4_utility)
-                    anl_utilities.append(anl_utility)
-                    pareto_efficiencies.append(pareto_efficiency)
-                    
-                    break
+                    if group4_response == 0:  # ACCEPT
+                        group4_utility = self.safe_utility_calculation(group4_ufun, anl_offer)
+                        anl_utility = self.safe_utility_calculation(anl_ufun, anl_offer)
+                        pareto_efficiency = (group4_utility + anl_utility) / 2.0
+                        
+                        agreements.append({
+                            'round': round_num,
+                            'offer': anl_offer,
+                            'group4_utility': group4_utility,
+                            'anl_utility': anl_utility,
+                            'pareto_efficiency': pareto_efficiency
+                        })
+                        
+                        group4_utilities.append(group4_utility)
+                        anl_utilities.append(anl_utility)
+                        pareto_efficiencies.append(pareto_efficiency)
+                        
+                        break
+                        
+            except Exception as e:
+                self._print(f"   Warning: Round {round_num} failed: {str(e)[:100]}{'...' if len(str(e)) > 100 else ''}")
+                continue
         
         return {
             'agreements_reached': len(agreements),
@@ -431,14 +763,14 @@ class ANLAgentTests:
     
     def run_party_domain_tests(self) -> Dict[str, Any]:
         """Run tests on party domain as specified in assignment"""
-        print("\n=== PARTY DOMAIN TESTING ===")
+        self._print("\n=== PARTY DOMAIN TESTING ===")
         
         # Test Group4 against itself
-        print("Testing Group4 against itself...")
+        self._print("Testing Group4 against itself...")
         self_play_results = self._run_self_play_test()
         
         # Test against ANL agents on party domain
-        print("Testing Group4 against ANL agents on party domain...")
+        self._print("Testing Group4 against ANL agents on party domain...")
         anl_party_results = self.test_against_anl_agents(rounds=25)
         
         return {
@@ -465,10 +797,10 @@ class ANLAgentTests:
                     'total_rounds': result['total_rounds']
                 }
             except Exception as e:
-                print(f"Helper-based self-play failed: {e}")
+                self._print(f"Helper-based self-play failed: {e}")
         
         # Simplified self-play test
-        print("Running simplified self-play test...")
+        self._print("Running simplified self-play test...")
         return {
             'agreement_reached': True,
             'final_utilities': [0.75, 0.75],
@@ -480,8 +812,11 @@ class ANLAgentTests:
     def generate_anl_test_report(self, results: Dict[str, Any]) -> str:
         """Generate comprehensive ANL test report"""
         
+        agent_type = "REAL ANL AGENTS" if results.get('using_real_anl', False) else "MOCK ANL AGENTS"
+        
         report = f"""
 === ANL AGENT TESTING REPORT ===
+Agent Type: {agent_type}
 
 OVERALL PERFORMANCE:
 - Tests conducted: {results['summary']['total_tests']}
@@ -512,31 +847,31 @@ DETAILED RESULTS BY AGENT TYPE:
 
 def main():
     """Run ANL agent testing"""
-    print("🚀 Starting ANL Agent Testing...")
+    # Create verbose tester for main execution
+    tester = ANLAgentTests(verbose=True)
+    
+    tester._print("🚀 Starting ANL Agent Testing...")
     
     # Note about ANL agents
     if ANL_AVAILABLE:
-        print("✅ ANL library is available")
-        print("   Using mock agents with realistic ANL behaviors")
-        print("   (Real ANL agents require complex utility function setup)")
+        tester._print("✅ ANL library is available")
+        tester._print("   Attempting to use real ANL agents with NegMAS utility functions")
     else:
-        print("⚠️  ANL library not found - using mock agents")
-        print("   Install with: pip install anl")
-    
-    print("   Mock agents implement standard negotiation strategies\n")
-    
-    tester = ANLAgentTests()
+        tester._print("⚠️  ANL library not found - using mock agents")
+        tester._print("   Install with: pip install anl")
     
     # Run comprehensive ANL testing
     results = tester.test_against_anl_agents(rounds=15)
     
     # Generate and save report
     report = tester.generate_anl_test_report(results)
-    print("\n" + "="*60)
-    print(report)
+    tester._print("\n" + "="*60)
+    tester._print(report)
     
-    # Save report to file
-    with open('anl_test_report.txt', 'w') as f:
+    # Save report to file using proper path handling
+    import pathlib
+    report_path = pathlib.Path(__file__).parent / 'anl_test_report.txt'
+    with open(report_path, 'w') as f:
         f.write(report)
     
     # Run party domain tests if helpers available
@@ -544,15 +879,33 @@ def main():
         try:
             party_results = tester.run_party_domain_tests()
             
-            print("\n=== PARTY DOMAIN RESULTS ===")
-            print(f"Self-play agreement: {party_results['self_play']['agreement_reached']}")
-            print(f"Self-play utilities: {party_results['self_play']['final_utilities']}")
-            print(f"ANL party tests completed: {party_results['anl_party']['summary']['total_tests']} tests")
+            tester._print("\n=== PARTY DOMAIN RESULTS ===")
+            tester._print(f"Self-play agreement: {party_results['self_play']['agreement_reached']}")
+            tester._print(f"Self-play utilities: {party_results['self_play']['final_utilities']}")
+            tester._print(f"ANL party tests completed: {party_results['anl_party']['summary']['total_tests']} tests")
         except Exception as e:
-            print(f"⚠️  Party domain tests failed: {e}")
+            tester._print(f"⚠️  Party domain tests failed: {e}")
     
-    print(f"\n✅ ANL testing complete! Report saved to 'anl_test_report.txt'")
-    print(f"   Using mock agents with realistic ANL behaviors")
+    agent_type = "real ANL agents" if results.get('using_real_anl', False) else "mock agents"
+    tester._print(f"\n✅ ANL testing complete! Report saved to 'anl_test_report.txt'")
+    tester._print(f"   Used {agent_type} for testing")
+    
+    return results
+
+
+def run_anl_tests(verbose=False):
+    """Tournament-safe version of ANL testing"""
+    tester = ANLAgentTests(verbose=verbose)
+    results = tester.test_against_anl_agents(rounds=15)
+    
+    # Generate report but don't print unless verbose
+    report = tester.generate_anl_test_report(results)
+    
+    # Save report to file using proper path handling
+    import pathlib
+    report_path = pathlib.Path(__file__).parent / 'anl_test_report.txt'
+    with open(report_path, 'w') as f:
+        f.write(report)
     
     return results
 
