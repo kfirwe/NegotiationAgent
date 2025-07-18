@@ -1,0 +1,57 @@
+
+=== ANL AGENT TESTING REPORT ===
+
+OVERALL PERFORMANCE:
+- Tests conducted: 6
+- Agreements reached: 6
+- Agreement rate: 100.0%
+- Average Group4 utility: 0.839
+- Average ANL utility: 0.643
+- Average Pareto efficiency: 0.741
+
+BEST MATCHUP: Linear
+WORST MATCHUP: Hardliner
+
+DETAILED RESULTS BY AGENT TYPE:
+
+Boulware Agent:
+- Agreements: 1
+- Group4 utility: 0.695
+- ANL utility: 0.870
+- Pareto efficiency: 0.783
+- Rounds played: 150
+
+Conceder Agent:
+- Agreements: 1
+- Group4 utility: 0.950
+- ANL utility: 0.550
+- Pareto efficiency: 0.750
+- Rounds played: 150
+
+Linear Agent:
+- Agreements: 1
+- Group4 utility: 1.000
+- ANL utility: 0.470
+- Pareto efficiency: 0.735
+- Rounds played: 150
+
+Random Agent:
+- Agreements: 1
+- Group4 utility: 0.900
+- ANL utility: 0.490
+- Pareto efficiency: 0.695
+- Rounds played: 150
+
+Tit4Tat Agent:
+- Agreements: 1
+- Group4 utility: 0.925
+- ANL utility: 0.590
+- Pareto efficiency: 0.758
+- Rounds played: 150
+
+Hardliner Agent:
+- Agreements: 1
+- Group4 utility: 0.565
+- ANL utility: 0.890
+- Pareto efficiency: 0.728
+- Rounds played: 150
