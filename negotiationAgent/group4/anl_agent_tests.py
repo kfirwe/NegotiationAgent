@@ -442,7 +442,7 @@ class ANLAgentTests:
         if self.anl_available:
             real_agents = self.get_real_anl_agents()
             if real_agents:
-                self._print("🎯 Testing against real ANL agents")
+                self._print("  Testing against real ANL agents")
                 self._print(f"   Available agents: {real_agents}")
                 anl_agent_types = real_agents
                 using_real_anl = True
@@ -451,7 +451,7 @@ class ANLAgentTests:
                 anl_agent_types = ['Boulware', 'Conceder', 'Linear', 'MiCRO']
                 using_real_anl = False
         else:
-            self._print("🎯 Testing against mock negotiation strategies")
+            self._print("  Testing against mock negotiation strategies")
             self._print("   (Real ANL library not available)")
             anl_agent_types = ['Boulware', 'Conceder', 'Linear', 'Random', 'Tit4Tat', 'Hardliner']
             using_real_anl = False
@@ -484,7 +484,7 @@ class ANLAgentTests:
             match_results = self._run_anl_match(group4_agent, anl_agent, rounds, using_real_anl)
             results['anl_results'][agent_type] = match_results
             
-            self._print(f"✅ Results vs {agent_type}:")
+            self._print(f"  Results vs {agent_type}:")
             self._print(f"   Agreements: {match_results['agreements_reached']}")
             self._print(f"   Group4 avg utility: {match_results['group4_avg_utility']:.3f}")
             self._print(f"   ANL agent avg utility: {match_results['anl_avg_utility']:.3f}")
@@ -850,11 +850,11 @@ def main():
     # Create verbose tester for main execution
     tester = ANLAgentTests(verbose=True)
     
-    tester._print("🚀 Starting ANL Agent Testing...")
+    tester._print("  Starting ANL Agent Testing...")
     
     # Note about ANL agents
     if ANL_AVAILABLE:
-        tester._print("✅ ANL library is available")
+        tester._print("  ANL library is available")
         tester._print("   Attempting to use real ANL agents with NegMAS utility functions")
     else:
         tester._print("⚠️  ANL library not found - using mock agents")
@@ -887,25 +887,8 @@ def main():
             tester._print(f"⚠️  Party domain tests failed: {e}")
     
     agent_type = "real ANL agents" if results.get('using_real_anl', False) else "mock agents"
-    tester._print(f"\n✅ ANL testing complete! Report saved to 'anl_test_report.txt'")
+    tester._print(f"\n  ANL testing complete! Report saved to 'anl_test_report.txt'")
     tester._print(f"   Used {agent_type} for testing")
-    
-    return results
-
-
-def run_anl_tests(verbose=False):
-    """Tournament-safe version of ANL testing"""
-    tester = ANLAgentTests(verbose=verbose)
-    results = tester.test_against_anl_agents(rounds=15)
-    
-    # Generate report but don't print unless verbose
-    report = tester.generate_anl_test_report(results)
-    
-    # Save report to file using proper path handling
-    import pathlib
-    report_path = pathlib.Path(__file__).parent / 'anl_test_report.txt'
-    with open(report_path, 'w') as f:
-        f.write(report)
     
     return results
 
