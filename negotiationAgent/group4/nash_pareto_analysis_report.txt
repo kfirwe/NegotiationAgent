@@ -12,85 +12,37 @@ SOLUTION QUALITY:
 - Both Nash and Pareto: 0 (0.0%)
 
 EFFICIENCY METRICS:
-- Average social welfare: 0.743
-- Average negotiation efficiency: 0.858
-- Average Pareto efficiency: 1.486
+- Average social welfare: 0.752
+- Average negotiation efficiency: 0.852
+- Average Pareto efficiency: 1.503
 
 DETAILED ANALYSIS:
 
 Negotiation 1:
-- Final utilities: Agent1=0.535, Agent2=0.940
+- Final utilities: Agent1=0.875, Agent2=0.670
 - Nash solution: False
 - Pareto optimal: False
 - Outcome quality: Fair - Close to Nash solution
-- Social welfare: 0.738
-- Negotiation efficiency: 0.750
+- Social welfare: 0.772
+- Negotiation efficiency: 0.900
 
 Negotiation 2:
-- Final utilities: Agent1=0.910, Agent2=0.590
+- Final utilities: Agent1=0.925, Agent2=0.590
 - Nash solution: False
 - Pareto optimal: False
 - Outcome quality: Fair - Close to Nash solution
-- Social welfare: 0.750
-- Negotiation efficiency: 0.750
+- Social welfare: 0.758
+- Negotiation efficiency: 0.900
 
 Negotiation 3:
-- Final utilities: Agent1=0.565, Agent2=0.890
-- Nash solution: False
-- Pareto optimal: False
-- Outcome quality: Fair - Close to Nash solution
-- Social welfare: 0.728
-- Negotiation efficiency: 0.900
-
-Negotiation 4:
-- Final utilities: Agent1=0.950, Agent2=0.550
-- Nash solution: False
-- Pareto optimal: False
-- Outcome quality: Fair - Close to Nash solution
-- Social welfare: 0.750
-- Negotiation efficiency: 0.900
-
-Negotiation 5:
 - Final utilities: Agent1=0.595, Agent2=0.930
 - Nash solution: False
 - Pareto optimal: False
 - Outcome quality: Fair - Close to Nash solution
 - Social welfare: 0.763
-- Negotiation efficiency: 0.850
+- Negotiation efficiency: 0.800
 
-Negotiation 6:
-- Final utilities: Agent1=0.535, Agent2=0.940
-- Nash solution: False
-- Pareto optimal: False
-- Outcome quality: Fair - Close to Nash solution
-- Social welfare: 0.738
-- Negotiation efficiency: 0.850
-
-Negotiation 7:
-- Final utilities: Agent1=0.525, Agent2=0.920
-- Nash solution: False
-- Pareto optimal: False
-- Outcome quality: Fair - Close to Nash solution
-- Social welfare: 0.723
-- Negotiation efficiency: 0.900
-
-Negotiation 8:
-- Final utilities: Agent1=0.870, Agent2=0.590
-- Nash solution: False
-- Pareto optimal: False
-- Outcome quality: Fair - Close to Nash solution
-- Social welfare: 0.730
-- Negotiation efficiency: 0.900
-
-Negotiation 9:
-- Final utilities: Agent1=0.535, Agent2=0.940
-- Nash solution: False
-- Pareto optimal: False
-- Outcome quality: Fair - Close to Nash solution
-- Social welfare: 0.738
-- Negotiation efficiency: 0.850
-
-Negotiation 10:
+Negotiation 4:
 - Final utilities: Agent1=0.925, Agent2=0.590
 - Nash solution: False
 - Pareto optimal: False
@@ -98,55 +50,71 @@ Negotiation 10:
 - Social welfare: 0.758
 - Negotiation efficiency: 0.850
 
-Negotiation 11:
-- Final utilities: Agent1=0.515, Agent2=0.970
+Negotiation 5:
+- Final utilities: Agent1=0.535, Agent2=0.940
 - Nash solution: False
 - Pareto optimal: False
 - Outcome quality: Fair - Close to Nash solution
-- Social welfare: 0.743
-- Negotiation efficiency: 0.900
-
-Negotiation 12:
-- Final utilities: Agent1=0.950, Agent2=0.550
-- Nash solution: False
-- Pareto optimal: False
-- Outcome quality: Fair - Close to Nash solution
-- Social welfare: 0.750
+- Social welfare: 0.738
 - Negotiation efficiency: 0.800
 
-Negotiation 13:
-- Final utilities: Agent1=0.950, Agent2=0.550
-- Nash solution: False
-- Pareto optimal: False
-- Outcome quality: Fair - Close to Nash solution
-- Social welfare: 0.750
-- Negotiation efficiency: 0.900
-
-Negotiation 14:
-- Final utilities: Agent1=0.595, Agent2=0.930
-- Nash solution: False
-- Pareto optimal: False
-- Outcome quality: Fair - Close to Nash solution
-- Social welfare: 0.763
-- Negotiation efficiency: 0.900
-
-Negotiation 15:
+Negotiation 6:
 - Final utilities: Agent1=0.910, Agent2=0.590
 - Nash solution: False
 - Pareto optimal: False
 - Outcome quality: Fair - Close to Nash solution
 - Social welfare: 0.750
+- Negotiation efficiency: 0.900
+
+Negotiation 7:
+- Final utilities: Agent1=0.595, Agent2=0.930
+- Nash solution: False
+- Pareto optimal: False
+- Outcome quality: Fair - Close to Nash solution
+- Social welfare: 0.763
+- Negotiation efficiency: 0.800
+
+Negotiation 8:
+- Final utilities: Agent1=0.515, Agent2=0.970
+- Nash solution: False
+- Pareto optimal: False
+- Outcome quality: Fair - Close to Nash solution
+- Social welfare: 0.743
 - Negotiation efficiency: 0.850
 
-Negotiation 16:
+Negotiation 9:
+- Final utilities: Agent1=0.925, Agent2=0.590
+- Nash solution: False
+- Pareto optimal: False
+- Outcome quality: Fair - Close to Nash solution
+- Social welfare: 0.758
+- Negotiation efficiency: 0.900
+
+Negotiation 10:
+- Final utilities: Agent1=0.535, Agent2=0.940
+- Nash solution: False
+- Pareto optimal: False
+- Outcome quality: Fair - Close to Nash solution
+- Social welfare: 0.738
+- Negotiation efficiency: 0.800
+
+Negotiation 11:
+- Final utilities: Agent1=0.925, Agent2=0.590
+- Nash solution: False
+- Pareto optimal: False
+- Outcome quality: Fair - Close to Nash solution
+- Social welfare: 0.758
+- Negotiation efficiency: 0.850
+
+Negotiation 12:
 - Final utilities: Agent1=0.525, Agent2=0.920
 - Nash solution: False
 - Pareto optimal: False
 - Outcome quality: Fair - Close to Nash solution
 - Social welfare: 0.723
-- Negotiation efficiency: 0.800
+- Negotiation efficiency: 0.850
 
-Negotiation 17:
+Negotiation 13:
 - Final utilities: Agent1=0.535, Agent2=0.940
 - Nash solution: False
 - Pareto optimal: False
@@ -154,26 +122,58 @@ Negotiation 17:
 - Social welfare: 0.738
 - Negotiation efficiency: 0.900
 
-Negotiation 18:
-- Final utilities: Agent1=0.605, Agent2=0.890
+Negotiation 14:
+- Final utilities: Agent1=0.860, Agent2=0.670
 - Nash solution: False
 - Pareto optimal: False
 - Outcome quality: Fair - Close to Nash solution
-- Social welfare: 0.748
+- Social welfare: 0.765
+- Negotiation efficiency: 0.850
+
+Negotiation 15:
+- Final utilities: Agent1=0.615, Agent2=0.910
+- Nash solution: False
+- Pareto optimal: False
+- Outcome quality: Fair - Close to Nash solution
+- Social welfare: 0.762
+- Negotiation efficiency: 0.850
+
+Negotiation 16:
+- Final utilities: Agent1=0.535, Agent2=0.940
+- Nash solution: False
+- Pareto optimal: False
+- Outcome quality: Fair - Close to Nash solution
+- Social welfare: 0.738
 - Negotiation efficiency: 0.900
 
-Negotiation 19:
-- Final utilities: Agent1=0.595, Agent2=0.930
+Negotiation 17:
+- Final utilities: Agent1=0.925, Agent2=0.590
 - Nash solution: False
 - Pareto optimal: False
 - Outcome quality: Fair - Close to Nash solution
-- Social welfare: 0.763
+- Social welfare: 0.758
+- Negotiation efficiency: 0.700
+
+Negotiation 18:
+- Final utilities: Agent1=0.925, Agent2=0.590
+- Nash solution: False
+- Pareto optimal: False
+- Outcome quality: Fair - Close to Nash solution
+- Social welfare: 0.758
 - Negotiation efficiency: 0.850
 
-Negotiation 20:
-- Final utilities: Agent1=0.525, Agent2=0.920
+Negotiation 19:
+- Final utilities: Agent1=0.535, Agent2=0.940
 - Nash solution: False
 - Pareto optimal: False
 - Outcome quality: Fair - Close to Nash solution
-- Social welfare: 0.723
-- Negotiation efficiency: 0.850
+- Social welfare: 0.738
+- Negotiation efficiency: 0.900
+
+Negotiation 20:
+- Final utilities: Agent1=0.925, Agent2=0.590
+- Nash solution: False
+- Pareto optimal: False
+- Outcome quality: Fair - Close to Nash solution
+- Social welfare: 0.758
+- Negotiation efficiency: 0.900

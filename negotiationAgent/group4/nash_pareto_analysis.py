@@ -466,8 +466,8 @@ def main():
         f.write(report)
     
     # Save detailed results as JSON
-    with open('nash_pareto_analysis_results.json', 'w') as f:
-        json.dump(results, f, indent=2, default=str)
+    # with open('nash_pareto_analysis_results.json', 'w') as f:
+    #     json.dump(results, f, indent=2, default=str)
     
     # Create plots
     analyzer.plot_nash_pareto_analysis(results, 'nash_pareto_analysis.png')
